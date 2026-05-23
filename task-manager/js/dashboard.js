@@ -1,10 +1,8 @@
-/* ───────────────── State ───────────────── */
-let tasks       = [];
-let filterMode  = 'all';
-let editingId   = null;
-let deletingId  = null;
+let tasks      = [];
+let filterMode = 'all';
+let editingId  = null;
+let deletingId = null;
 
-/* ───────────────── DOM refs ───────────────── */
 const taskList      = document.getElementById('taskList');
 const modalOverlay  = document.getElementById('modalOverlay');
 const modalTitle    = document.getElementById('modalTitle');
@@ -20,14 +18,13 @@ const fields = {
     notes:       document.getElementById('taskNotes'),
 };
 
-/* ───────────────── API helpers ───────────────── */
+// Wrapper around fetch — sets JSON headers, throws on non-2xx
 async function apiFetch(url, opts = {}) {
     const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
     if (!res.ok) throw new Error((await res.json()).error || 'Request failed');
     return res.json();
 }
 
-/* ───────────────── Load & render ───────────────── */
 async function loadTasks() {
     try {
         tasks = await apiFetch(`api/tasks.php?date=${TODAY}`);
@@ -98,7 +95,6 @@ function updateStats() {
     document.getElementById('statHigh').textContent      = high;
 }
 
-/* ───────────────── Task actions ───────────────── */
 async function toggleStatus(id, checked) {
     try {
         const updated = await apiFetch('api/tasks.php', {
@@ -111,6 +107,7 @@ async function toggleStatus(id, checked) {
     } catch (e) { alert(e.message); }
 }
 
+// Handles both create (editingId null) and edit (editingId set)
 async function saveTask() {
     const title = fields.title.value.trim();
     if (!title) { fields.title.focus(); return; }
@@ -159,7 +156,6 @@ async function deleteTask() {
     } catch (e) { alert(e.message); }
 }
 
-/* ───────────────── Modal helpers ───────────────── */
 function openCreateModal() {
     editingId = null;
     modalTitle.textContent = 'New Task';
@@ -202,7 +198,6 @@ function closeDeleteModal() {
     deletingId = null;
 }
 
-/* ───────────────── Utilities ───────────────── */
 function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -214,7 +209,6 @@ function formatTime(t) {
     return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
 }
 
-/* ───────────────── Event bindings ───────────────── */
 document.getElementById('openCreateModal').addEventListener('click', openCreateModal);
 document.getElementById('modalClose').addEventListener('click', closeModal);
 document.getElementById('modalCancel').addEventListener('click', closeModal);
@@ -247,5 +241,4 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.ctrlKey && modalOverlay.classList.contains('visible')) saveTask();
 });
 
-/* ───────────────── Init ───────────────── */
 loadTasks();

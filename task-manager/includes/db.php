@@ -1,4 +1,5 @@
 <?php
+// Returns a singleton PDO connection. Creates the DB and tables on first call.
 function getDB(): PDO {
     static $db = null;
     if ($db !== null) return $db;

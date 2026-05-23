@@ -1,4 +1,3 @@
-/* ───────────────── State ───────────────── */
 const TODAY       = new Date().toISOString().slice(0, 10);
 let   currentView = 'weekly';
 let   anchor      = new Date();
@@ -7,28 +6,26 @@ const DAYS   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January','February','March','April','May','June',
                 'July','August','September','October','November','December'];
 
-/* ───────────────── DOM refs ───────────────── */
 const calendarView    = document.getElementById('calendarView');
 const rangeLabel      = document.getElementById('calendarRangeLabel');
 const dayModalOverlay = document.getElementById('dayModalOverlay');
 const dayModalTitle   = document.getElementById('dayModalTitle');
 const dayModalBody    = document.getElementById('dayModalBody');
 
-/* ───────────────── API ───────────────── */
 async function fetchTasksForMonth(year, month) {
     const ym  = `${year}-${String(month + 1).padStart(2, '0')}`;
     const res = await fetch(`api/tasks.php?month=${ym}`);
     return res.ok ? res.json() : [];
 }
 
-/* ───────────────── Render entry ───────────────── */
 async function render() {
     calendarView.innerHTML = '<div class="loading-spinner">Loading…</div>';
     if (currentView === 'weekly') await renderWeekly();
     else await renderMonthly();
 }
 
-/* ───────────────── Weekly view ───────────────── */
+// Builds the 7-day grid starting from the Monday of the current anchor week.
+// May fetch two months if the week spans a month boundary.
 async function renderWeekly() {
     const monday = new Date(anchor);
     monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
@@ -73,7 +70,6 @@ async function renderWeekly() {
     calendarView.innerHTML = html;
 }
 
-/* ───────────────── Monthly view ───────────────── */
 async function renderMonthly() {
     const year  = anchor.getFullYear();
     const month = anchor.getMonth();
@@ -120,7 +116,6 @@ async function renderMonthly() {
     });
 }
 
-/* ───────────────── Day modal ───────────────── */
 function showDayModal(date, dayTasks) {
     const d = new Date(date + 'T00:00:00');
     dayModalTitle.textContent = formatFullDate(d);
@@ -144,7 +139,6 @@ function showDayModal(date, dayTasks) {
     dayModalOverlay.classList.add('visible');
 }
 
-/* ───────────────── Mini task card (weekly) ───────────────── */
 function miniTaskCard(t) {
     return `<div class="mini-task priority-border-${t.priority} ${t.status === 'completed' ? 'task-done' : ''}">
         <span class="mini-task-title">${escHtml(t.title)}</span>
@@ -152,7 +146,7 @@ function miniTaskCard(t) {
     </div>`;
 }
 
-/* ───────────────── Helpers ───────────────── */
+// Groups a flat task array into an object keyed by due_date
 function groupByDate(tasks) {
     return tasks.reduce((acc, t) => {
         if (!t.due_date) return acc;
@@ -173,14 +167,12 @@ function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-/* ───────────────── Navigation ───────────────── */
 function navigate(direction) {
     if (currentView === 'weekly') anchor.setDate(anchor.getDate() + direction * 7);
     else anchor.setMonth(anchor.getMonth() + direction);
     render();
 }
 
-/* ───────────────── Event bindings ───────────────── */
 document.getElementById('prevBtn').addEventListener('click', () => navigate(-1));
 document.getElementById('nextBtn').addEventListener('click', () => navigate(1));
 document.getElementById('todayBtn').addEventListener('click', () => { anchor = new Date(); render(); });
@@ -207,10 +199,9 @@ dayModalOverlay.addEventListener('click', e => {
 });
 
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape')      dayModalOverlay.classList.remove('visible');
+    if (e.key === 'Escape')     dayModalOverlay.classList.remove('visible');
     if (e.key === 'ArrowLeft')  navigate(-1);
     if (e.key === 'ArrowRight') navigate(1);
 });
 
-/* ───────────────── Init ───────────────── */
 render();
