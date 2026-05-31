@@ -1,0 +1,14 @@
+# Build and run with: docker compose up --build  (then open http://localhost:8080)
+services:
+  app:
+    build: .
+    image: taskflow:latest
+    container_name: taskflow
+    ports:
+      - "8080:8000"          # host port 8080 -> container port 8000
+    volumes:
+      - taskflow-db:/var/www/html/db   # persist the SQLite DB across restarts
+    restart: unless-stopped
+
+volumes:
+  taskflow-db:
