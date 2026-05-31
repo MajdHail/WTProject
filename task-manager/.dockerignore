@@ -1,0 +1,12 @@
+# Keep the build context and image lean.
+.git
+.gitignore
+.playwright-mcp
+
+# Start on a clean schema — db.php recreates tables, and the live DB lives in a volume.
+db/tasks.db
+
+# The Docker tooling doesn't belong inside the image.
+Dockerfile
+.dockerignore
+docker-compose.yml
