@@ -286,7 +286,7 @@ function navigate(direction) {
 
     if (currentView === 'weekly') anchor.setDate(anchor.getDate() + direction * 7);
 
-    else anchor.setMonth(anchor.getMonth() + direction);
+    else { anchor.setDate(1); anchor.setMonth(anchor.getMonth() + direction); }
 
     render();
 
