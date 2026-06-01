@@ -1,0 +1,25 @@
+# Database
+task-manager/db/tasks.db
+
+# Uploaded files
+task-manager/uploads/avatars/*
+task-manager/uploads/task-attachments/*
+!task-manager/uploads/avatars/.gitkeep
+!task-manager/uploads/task-attachments/.gitkeep
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# PHP dev server logs
+*.log
+
+# Environment / secrets
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
