@@ -148,7 +148,7 @@ $greeting = (int)date('H') < 12 ? 'Good morning' : ((int)date('H') < 18 ? 'Good 
 
 <div class="modal-overlay" id="modalOverlay">
 
-    <div class="modal" id="taskModal">
+    <div class="modal modal-lg" id="taskModal">
 
         <div class="modal-header">
 
@@ -158,85 +158,119 @@ $greeting = (int)date('H') < 12 ? 'Good morning' : ((int)date('H') < 18 ? 'Good 
 
         </div>
 
-        <div class="modal-body">
+        <div class="modal-body modal-two-col">
 
-            <input type="hidden" id="taskId">
+            <!-- Left: Task fields -->
 
-            <div class="form-group">
+            <div class="modal-col-main">
 
-                <label class="form-label">Title <span class="required">*</span></label>
-
-                <input type="text" id="taskTitle" class="form-input" placeholder="What needs to be done?">
-
-            </div>
-
-            <div class="form-group">
-
-                <label class="form-label">Description</label>
-
-                <textarea id="taskDescription" class="form-input form-textarea" placeholder="Add more details…"></textarea>
-
-            </div>
-
-            <div class="form-row">
+                <input type="hidden" id="taskId">
 
                 <div class="form-group">
 
-                    <label class="form-label">Due Date</label>
+                    <label class="form-label">Title <span class="required">*</span></label>
 
-                    <input type="date" id="taskDueDate" class="form-input">
+                    <input type="text" id="taskTitle" class="form-input" placeholder="What needs to be done?">
 
                 </div>
 
                 <div class="form-group">
 
-                    <label class="form-label">Due Time</label>
+                    <label class="form-label">Description</label>
 
-                    <input type="time" id="taskDueTime" class="form-input">
+                    <textarea id="taskDescription" class="form-input form-textarea" placeholder="Add more details…"></textarea>
+
+                </div>
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label class="form-label">Due Date</label>
+
+                        <input type="date" id="taskDueDate" class="form-input">
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label class="form-label">Due Time</label>
+
+                        <input type="time" id="taskDueTime" class="form-input">
+
+                    </div>
+
+                </div>
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label class="form-label">Priority</label>
+
+                        <select id="taskPriority" class="form-input form-select">
+
+                            <option value="low">Low</option>
+
+                            <option value="medium" selected>Medium</option>
+
+                            <option value="high">High</option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label class="form-label">Status</label>
+
+                        <select id="taskStatus" class="form-input form-select">
+
+                            <option value="pending">Pending</option>
+
+                            <option value="completed">Completed</option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label class="form-label">Notes</label>
+
+                    <textarea id="taskNotes" class="form-input form-textarea" placeholder="Any extra notes…"></textarea>
 
                 </div>
 
             </div>
 
-            <div class="form-row">
+            <!-- Right: Attachments (only shown when editing) -->
 
-                <div class="form-group">
+            <div class="modal-col-attach" id="attachPanel" style="display:none">
 
-                    <label class="form-label">Priority</label>
+                <div class="attach-header">
 
-                    <select id="taskPriority" class="form-input form-select">
+                    <label class="form-label">📎 Attachments</label>
 
-                        <option value="low">Low</option>
+                    <label class="btn btn-ghost btn-sm" id="attachUploadLabel" style="cursor:pointer">
 
-                        <option value="medium" selected>Medium</option>
+                        + Upload
 
-                        <option value="high">High</option>
+                        <input type="file" id="attachFileInput" style="display:none" multiple>
 
-                    </select>
-
-                </div>
-
-                <div class="form-group">
-
-                    <label class="form-label">Status</label>
-
-                    <select id="taskStatus" class="form-input form-select">
-
-                        <option value="pending">Pending</option>
-
-                        <option value="completed">Completed</option>
-
-                    </select>
+                    </label>
 
                 </div>
 
-            </div>
+                <div id="attachList" class="attach-list">
 
-            <div class="form-group">
+                    <p class="attach-empty">No attachments yet.</p>
 
-                <label class="form-label">Notes</label>
+                </div>
 
-                <textarea id="taskNotes" class="form-input form-textarea" placeholder="Any extra notes…"></textarea>
+                <p class="attach-hint">Max 5 MB per file · PDF, images, docs, zip</p>
 
             </div>
 

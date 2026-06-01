@@ -40,10 +40,6 @@ async function render() {
 
 }
 
-// Builds the 7-day grid starting from the Monday of the current anchor week.
-
-// May fetch two months if the week spans a month boundary.
-
 async function renderWeekly() {
 
     const monday = new Date(anchor);
@@ -247,8 +243,6 @@ function miniTaskCard(t) {
     </div>`;
 
 }
-
-// Groups a flat task array into an object keyed by due_date
 
 function groupByDate(tasks) {
 

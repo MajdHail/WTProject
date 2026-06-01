@@ -22,8 +22,6 @@ $db     = getDB();
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Parse body for PUT/DELETE
-
 $body = [];
 
 if ($method === 'PUT' || $method === 'DELETE') {
@@ -84,17 +82,18 @@ function handleGet(PDO $db, int $userId): void {
 
     if (!empty($_GET['date'])) {
 
-        $where         .= ' AND due_date = :date';
+        $where          .= ' AND due_date = :date';
 
-        $params['date'] = $_GET['date'];
+        $params['date']  = $_GET['date'];
 
     } elseif (!empty($_GET['month'])) {
 
-        $where          .= " AND strftime('%Y-%m', due_date) = :month";
+        $where           .= " AND strftime('%Y-%m', due_date) = :month";
 
-        $params['month'] = $_GET['month'];
+        $params['month']  = $_GET['month'];
 
     }
+    
 
     $stmt = $db->prepare("SELECT * FROM tasks WHERE $where ORDER BY due_date ASC, due_time ASC, created_at DESC");
 
@@ -121,7 +120,6 @@ function handlePost(PDO $db, int $userId): void {
     }
 
     $stmt = $db->prepare("INSERT INTO tasks (user_id, title, description, notes, due_date, due_time, status, priority)
-
                           VALUES (:user_id, :title, :desc, :notes, :due_date, :due_time, :status, :priority)");
 
     $stmt->execute([
