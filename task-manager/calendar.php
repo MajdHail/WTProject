@@ -48,11 +48,11 @@ require_once 'includes/auth_check.php';
 
             <div class="nav-controls">
 
-                <button class="nav-btn" id="prevBtn">&#8592;</button>
+                <button class="nav-btn" id="prevBtn">&
 
                 <button class="nav-btn today-btn" id="todayBtn">Today</button>
 
-                <button class="nav-btn" id="nextBtn">&#8594;</button>
+                <button class="nav-btn" id="nextBtn">&
 
             </div>
 
