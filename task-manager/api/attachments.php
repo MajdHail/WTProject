@@ -1,11 +1,31 @@
 <?php
 
+/**
+ * REST API endpoint for task attachments — /api/attachments.php
+ *
+ * Handles file uploads for individual tasks:
+ *   POST   → upload a file  (multipart/form-data with task_id + file)
+ *   GET    → list attachments for a task  (?task_id=N)
+ *   DELETE → remove an attachment  (JSON body with id)
+ *
+ * Security measures applied here:
+ *   1. Session auth guard — only logged-in users can upload.
+ *   2. Task ownership check — users can only attach files to their own tasks.
+ *   3. File size cap (5 MB).
+ *   4. MIME type validated via finfo (reads the actual file bytes, not the
+ *      browser-supplied Content-Type which can be spoofed).
+ *   5. Stored filename generated with uniqid() + MIME-derived extension so
+ *      attackers cannot choose a .php extension to achieve code execution.
+ *   6. uploads/ directory has an .htaccess that blocks PHP execution.
+ */
+
 session_start();
 
 require_once '../includes/db.php';
 
 header('Content-Type: application/json');
 
+// Auth guard
 if (empty($_SESSION['user_id'])) {
 
     http_response_code(401);
@@ -26,6 +46,8 @@ $uploadDir = __DIR__ . '/../uploads/task-attachments/';
 
 if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
 
+// Whitelist of MIME types this application accepts.
+// finfo checks the file's magic bytes, so this cannot be bypassed by renaming.
 $allowedMimes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
     'application/pdf',
@@ -37,7 +59,7 @@ $allowedMimes = [
     'application/zip',
 ];
 
-$maxSize = 5 * 1024 * 1024; 
+$maxSize = 5 * 1024 * 1024; // 5 MB in bytes
 
 try {
 
@@ -85,7 +107,19 @@ try {
             exit;
         }
 
-        $ext        = pathinfo($file['name'], PATHINFO_EXTENSION);
+        // Derive extension from the server-validated MIME type, not the user-supplied filename,
+        // so an attacker cannot store a file with a .php extension by naming it shell.php.
+        $mimeToExt  = [
+            'image/jpeg'      => 'jpg',  'image/png'  => 'png',
+            'image/gif'       => 'gif',  'image/webp' => 'webp',
+            'application/pdf' => 'pdf',  'text/plain' => 'txt',
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+            'application/vnd.ms-excel' => 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+            'application/zip' => 'zip',
+        ];
+        $ext        = $mimeToExt[$mimeType] ?? '';
         $storedName = uniqid('att_', true) . ($ext ? '.' . $ext : '');
         $destPath   = $uploadDir . $storedName;
 

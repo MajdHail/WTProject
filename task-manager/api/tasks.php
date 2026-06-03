@@ -1,11 +1,26 @@
 <?php
 
+/**
+ * REST API endpoint for tasks — /api/tasks.php
+ *
+ * Maps HTTP methods to CRUD operations:
+ *   GET    → list tasks (filtered by ?date= or ?month=)
+ *   POST   → create a new task   (JSON body)
+ *   PUT    → update an existing task (JSON body with id)
+ *   DELETE → delete a task       (JSON body with id)
+ *
+ * All responses are JSON. Every operation is scoped to the logged-in user,
+ * so users can never read or modify another user's tasks.
+ */
+
 session_start();
 
 require_once '../includes/db.php';
 
 header('Content-Type: application/json');
 
+// ── Auth guard ────────────────────────────────────────────────────────────────
+// Reject unauthenticated requests immediately with HTTP 401 Unauthorized.
 if (empty($_SESSION['user_id'])) {
 
     http_response_code(401);
@@ -16,12 +31,15 @@ if (empty($_SESSION['user_id'])) {
 
 }
 
+// Cast to int so it can never be used as a string in a SQL injection attack.
 $userId = (int)$_SESSION['user_id'];
 
 $db     = getDB();
 
 $method = $_SERVER['REQUEST_METHOD'];
 
+// PUT and DELETE send their payload as a JSON body (not form data),
+// because browsers send fetch() with Content-Type: application/json.
 $body = [];
 
 if ($method === 'PUT' || $method === 'DELETE') {
@@ -68,32 +86,44 @@ try {
 
 } catch (Exception $e) {
 
+    // Catch any unhandled database or runtime error and return a 500.
     http_response_code(500);
 
     echo json_encode(['error' => $e->getMessage()]);
 
 }
 
+// ── Handlers ─────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/tasks.php
+ * Optional query params:
+ *   ?date=YYYY-MM-DD   → tasks for a specific day (used by the dashboard)
+ *   ?month=YYYY-MM     → tasks for a whole month (used by the calendar)
+ *   (no param)         → all tasks for the user
+ */
 function handleGet(PDO $db, int $userId): void {
 
+    // Always start with the user_id filter so a user can only see their own tasks.
     $params = ['user_id' => $userId];
 
     $where  = 'user_id = :user_id';
 
     if (!empty($_GET['date'])) {
 
+        // Named PDO parameter :date — the value is never interpolated directly.
         $where          .= ' AND due_date = :date';
 
         $params['date']  = $_GET['date'];
 
     } elseif (!empty($_GET['month'])) {
 
+        // strftime extracts 'YYYY-MM' from the stored DATE column.
         $where           .= " AND strftime('%Y-%m', due_date) = :month";
 
         $params['month']  = $_GET['month'];
 
     }
-    
 
     $stmt = $db->prepare("SELECT * FROM tasks WHERE $where ORDER BY due_date ASC, due_time ASC, created_at DESC");
 
@@ -103,6 +133,11 @@ function handleGet(PDO $db, int $userId): void {
 
 }
 
+/**
+ * POST /api/tasks.php
+ * Creates a new task. Expects a JSON body with at least { title }.
+ * Returns the newly-inserted task row as JSON with HTTP 201 Created.
+ */
 function handlePost(PDO $db, int $userId): void {
 
     $data = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -132,16 +167,20 @@ function handlePost(PDO $db, int $userId): void {
 
         'notes'    => trim($data['notes'] ?? ''),
 
+        // Coerce empty string to NULL so the DATE column stays clean.
         'due_date' => $data['due_date'] ?: null,
 
         'due_time' => trim($data['due_time'] ?? ''),
 
+        // Whitelist validation — reject anything not in the allowed set.
         'status'   => in_array($data['status'] ?? '', ['pending', 'completed']) ? $data['status'] : 'pending',
 
         'priority' => in_array($data['priority'] ?? '', ['low', 'medium', 'high']) ? $data['priority'] : 'medium',
 
     ]);
 
+    // Fetch the full row so the client gets all server-generated fields
+    // (id, created_at, updated_at) in one round-trip.
     $id   = $db->lastInsertId();
 
     $stmt = $db->prepare('SELECT * FROM tasks WHERE id = ?');
@@ -154,6 +193,11 @@ function handlePost(PDO $db, int $userId): void {
 
 }
 
+/**
+ * PUT /api/tasks.php
+ * Partial update — only the fields present in the JSON body are changed.
+ * The user_id check in the WHERE clause ensures users cannot edit others' tasks.
+ */
 function handlePut(PDO $db, int $userId, array $data): void {
 
     $id = (int)($data['id'] ?? 0);
@@ -168,6 +212,7 @@ function handlePut(PDO $db, int $userId, array $data): void {
 
     }
 
+    // Ownership check — 404 if the task belongs to a different user.
     $stmt = $db->prepare('SELECT id FROM tasks WHERE id = ? AND user_id = ?');
 
     $stmt->execute([$id, $userId]);
@@ -182,6 +227,8 @@ function handlePut(PDO $db, int $userId, array $data): void {
 
     }
 
+    // Build the SET clause dynamically from only the keys the client sent.
+    // array_key_exists (not isset) so that sending null explicitly clears a field.
     $fields = [];
 
     $params = ['id' => $id, 'user_id' => $userId];
@@ -214,6 +261,7 @@ function handlePut(PDO $db, int $userId, array $data): void {
 
        ->execute($params);
 
+    // Return the updated row so the client can refresh its local state.
     $stmt = $db->prepare('SELECT * FROM tasks WHERE id = ?');
 
     $stmt->execute([$id]);
@@ -222,6 +270,11 @@ function handlePut(PDO $db, int $userId, array $data): void {
 
 }
 
+/**
+ * DELETE /api/tasks.php
+ * Deletes a task by id. The user_id in the WHERE clause is the ownership guard.
+ * The ON DELETE CASCADE in the schema automatically removes all attachments too.
+ */
 function handleDelete(PDO $db, int $userId, array $body): void {
 
     $id = (int)($body['id'] ?? $_GET['id'] ?? 0);
@@ -236,10 +289,14 @@ function handleDelete(PDO $db, int $userId, array $body): void {
 
     }
 
+    // Combining DELETE with the user_id check in one query is more efficient
+    // than a separate SELECT-then-DELETE pair.
     $stmt = $db->prepare('DELETE FROM tasks WHERE id = ? AND user_id = ?');
 
     $stmt->execute([$id, $userId]);
 
+    // rowCount() returns how many rows were actually deleted.
+    // 0 means either the task didn't exist or it belonged to another user.
     if ($stmt->rowCount() === 0) {
 
         http_response_code(404);

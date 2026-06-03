@@ -1,9 +1,25 @@
-let tasks      = [];
-let filterMode = 'all';
-let editingId  = null;
-let deletingId = null;
+/**
+ * Dashboard — js/dashboard.js
+ *
+ * This is a Single-Page Application (SPA) pattern: the PHP page only renders
+ * the HTML shell. All task data is loaded and manipulated via fetch() calls to
+ * the JSON API (api/tasks.php and api/attachments.php), and the DOM is rebuilt
+ * in JavaScript — no full page reloads after the initial load.
+ *
+ * State lives in three variables:
+ *   tasks      — the current list fetched from the server
+ *   filterMode — which tab is active ('all' | 'pending' | 'completed')
+ *   editingId  — the id of the task open in the modal, or null for a new task
+ */
+
+// ── Application state ─────────────────────────────────────────────────────────
+let tasks      = [];      // in-memory copy of today's tasks
+let filterMode = 'all';   // active filter tab
+let editingId  = null;    // task currently open in the modal (null = new task)
+let deletingId = null;    // task queued for deletion in the confirm dialog
 let pendingFiles = [];
 
+// ── DOM references (cached at startup to avoid repeated querySelector calls) ──
 const taskList      = document.getElementById('taskList');
 const modalOverlay  = document.getElementById('modalOverlay');
 const modalTitle    = document.getElementById('modalTitle');
@@ -11,6 +27,7 @@ const deleteOverlay = document.getElementById('deleteOverlay');
 const attachPanel   = document.getElementById('attachPanel');
 const attachList    = document.getElementById('attachList');
 
+// Form field references grouped in one object for easy bulk read/write.
 const fields = {
     id:          document.getElementById('taskId'),
     title:       document.getElementById('taskTitle'),
@@ -22,6 +39,12 @@ const fields = {
     notes:       document.getElementById('taskNotes'),
 };
 
+// ── API helpers ───────────────────────────────────────────────────────────────
+
+/**
+ * Thin wrapper around fetch() that always sends/expects JSON and throws on
+ * non-2xx responses, so all callers can use try/catch for error handling.
+ */
 async function apiFetch(url, opts = {}) {
     const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
     if (!res.ok) throw new Error((await res.json()).error || 'Request failed');
@@ -329,6 +352,11 @@ function showToast(msg, type = 'success') {
     }, 3000);
 }
 
+/**
+ * Escapes a value for safe insertion into HTML.
+ * All task data from the server is passed through this before being set as
+ * innerHTML — this prevents XSS if a task title contains <script> tags.
+ */
 function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }

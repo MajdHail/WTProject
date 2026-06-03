@@ -1,7 +1,23 @@
 <?php
 
+/**
+ * Login page — auth/login.php
+ *
+ * Accepts either a username or email so users don't need to remember which
+ * one they signed up with.
+ *
+ * Security notes:
+ *   - Passwords are verified with password_verify() against a bcrypt hash —
+ *     the raw password is never stored or compared as plain text.
+ *   - The error message is deliberately vague ("Invalid username/email or
+ *     password") so an attacker cannot tell whether the account exists.
+ *   - All user-supplied values echoed into HTML are wrapped in htmlspecialchars()
+ *     to prevent Cross-Site Scripting (XSS) attacks.
+ */
+
 session_start();
 
+// If already logged in, skip the login page entirely.
 if (isset($_SESSION['user_id'])) { header('Location: ../dashboard.php'); exit; }
 
 require_once '../includes/db.php';
@@ -22,13 +38,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $db   = getDB();
 
+        // Accept login by email OR username in one query using OR.
         $stmt = $db->prepare('SELECT * FROM users WHERE email = ? OR username = ?');
 
         $stmt->execute([$identifier, $identifier]);
 
         $user = $stmt->fetch();
 
+        // password_verify() compares the submitted password against the stored
+        // bcrypt hash. It is timing-safe, so it cannot leak info via timing attacks.
         if ($user && password_verify($password, $user['password_hash'])) {
+
+            // Regenerate the session ID to prevent session fixation attacks.
+            session_regenerate_id(true);
 
             $_SESSION['user_id']  = $user['id'];
 

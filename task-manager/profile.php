@@ -48,10 +48,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         $ext        = pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION);
                         $avatarName = 'avatar_' . $userId . '_' . uniqid() . '.' . $ext;
-                        move_uploaded_file($_FILES['avatar']['tmp_name'], $avatarDir . $avatarName);
-                        
-                        if ($user['avatar'] && file_exists($avatarDir . $user['avatar'])) {
-                            unlink($avatarDir . $user['avatar']);
+                        if (!move_uploaded_file($_FILES['avatar']['tmp_name'], $avatarDir . $avatarName)) {
+                            // Move failed (e.g. disk full or permissions) — keep the existing avatar.
+                            $error = 'Failed to save avatar. Please try again.';
+                            $avatarName = $user['avatar'];
+                        } else {
+                            // Only remove the old file once we know the new one is safely stored.
+                            if ($user['avatar'] && file_exists($avatarDir . $user['avatar'])) {
+                                unlink($avatarDir . $user['avatar']);
+                            }
                         }
                     }
                 }

@@ -1,1 +1,10 @@
-<?php // prevent directory listing ?>
+# Disable directory listing so users cannot browse uploaded files.
+Options -Indexes
+
+# Block execution of PHP (and related) scripts stored in this directory.
+# Even if an attacker uploads a file with a .php extension, the web server
+# will refuse to execute it and return a 403 instead.
+<FilesMatch "\.php[0-9]?$|\.phtml$|\.phar$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
