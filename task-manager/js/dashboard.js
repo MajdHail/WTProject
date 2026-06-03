@@ -13,11 +13,12 @@
  */
 
 // ── Application state ─────────────────────────────────────────────────────────
-let tasks      = [];      // in-memory copy of today's tasks
+let tasks      = [];      // in-memory copy of the viewed day's tasks
 let filterMode = 'all';   // active filter tab
 let editingId  = null;    // task currently open in the modal (null = new task)
 let deletingId = null;    // task queued for deletion in the confirm dialog
 let pendingFiles = [];
+let viewDate   = TODAY;   // the day currently shown on the dashboard
 
 // ── DOM references (cached at startup to avoid repeated querySelector calls) ──
 const taskList      = document.getElementById('taskList');
@@ -52,13 +53,35 @@ async function apiFetch(url, opts = {}) {
 }
 
 async function loadTasks() {
+    updateDayNav();
     try {
-        tasks = await apiFetch(`api/tasks.php?date=${TODAY}`);
+        tasks = await apiFetch(`api/tasks.php?date=${viewDate}`);
         renderTasks();
         updateStats();
     } catch (e) {
         taskList.innerHTML = `<div class="empty-state"><p style="color:var(--danger)">Error loading tasks: ${e.message}</p></div>`;
     }
+}
+
+function updateDayNav() {
+    const d = new Date(viewDate + 'T00:00:00');
+    const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const isToday = viewDate === TODAY;
+    document.getElementById('dayNavLabel').textContent =
+        isToday ? `Today — ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+                : `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    document.getElementById('tasksTitle').textContent =
+        isToday ? "Today's Tasks" : `Tasks for ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+    document.getElementById('todayDayBtn').disabled = isToday;
+}
+
+function shiftDay(days) {
+    const d = new Date(viewDate + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    // Use local date parts — toISOString() converts to UTC first and gives the wrong date in non-UTC timezones.
+    viewDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    loadTasks();
 }
 
 function renderTasks() {
@@ -148,7 +171,7 @@ async function ensureTaskSaved() {
         title,
         description: fields.description.value.trim(),
         notes:       fields.notes.value.trim(),
-        due_date:    fields.dueDate.value || TODAY,
+        due_date:    fields.dueDate.value || viewDate,
         due_time:    fields.dueTime.value,
         priority:    fields.priority.value,
         status:      fields.status.value,
@@ -160,7 +183,7 @@ async function ensureTaskSaved() {
             body: JSON.stringify(payload),
         });
         editingId = created.id;
-        if (created.due_date === TODAY) tasks.unshift(created);
+        if (created.due_date === viewDate) tasks.unshift(created);
         modalTitle.textContent = 'Edit Task';
         renderTasks();
         updateStats();
@@ -179,7 +202,7 @@ async function saveTask() {
         title,
         description: fields.description.value.trim(),
         notes:       fields.notes.value.trim(),
-        due_date:    fields.dueDate.value || TODAY,
+        due_date:    fields.dueDate.value || viewDate,
         due_time:    fields.dueTime.value,
         priority:    fields.priority.value,
         status:      fields.status.value,
@@ -199,7 +222,7 @@ async function saveTask() {
                 body: JSON.stringify(payload),
             });
             editingId = created.id;
-            if (created.due_date === TODAY) tasks.unshift(created);
+            if (created.due_date === viewDate) tasks.unshift(created);
             showToast('Task created!', 'success');
         }
         closeModal();
@@ -227,7 +250,7 @@ function openCreateModal() {
     editingId = null;
     modalTitle.textContent = 'New Task';
     Object.values(fields).forEach(f => { if (f) f.value = ''; });
-    fields.dueDate.value  = TODAY;
+    fields.dueDate.value  = viewDate;
     fields.priority.value = 'medium';
     fields.status.value   = 'pending';
     attachPanel.style.display = '';
@@ -382,6 +405,10 @@ function fileIcon(mime) {
     if (mime === 'application/zip') return '🗜';
     return '📎';
 }
+
+document.getElementById('prevDayBtn').addEventListener('click', () => shiftDay(-1));
+document.getElementById('nextDayBtn').addEventListener('click', () => shiftDay(1));
+document.getElementById('todayDayBtn').addEventListener('click', () => { viewDate = TODAY; loadTasks(); });
 
 document.getElementById('openCreateModal').addEventListener('click', openCreateModal);
 document.getElementById('modalClose').addEventListener('click', closeModal);
