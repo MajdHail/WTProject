@@ -476,6 +476,34 @@ input, textarea, select { font: inherit; outline: none; }
 
 .page-date     { color: var(--text-muted); font-size: 14px; margin-top: 2px; }
 
+/* Day Navigator */
+
+.day-nav-bar {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    margin-bottom: 20px;
+
+}
+
+.day-nav-label {
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    color: var(--text-1);
+
+    min-width: 220px;
+
+    text-align: center;
+
+}
+
 /* Stats */
 
 .stats-grid {

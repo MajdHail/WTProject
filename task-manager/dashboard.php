@@ -52,6 +52,20 @@ $greeting = (int)date('H') < 12 ? 'Good morning' : ((int)date('H') < 18 ? 'Good 
 
     </header>
 
+    <!-- Day Navigator -->
+
+    <div class="day-nav-bar">
+
+        <button class="nav-btn" id="prevDayBtn">&#8592;</button>
+
+        <button class="nav-btn today-btn" id="todayDayBtn">Today</button>
+
+        <span class="day-nav-label" id="dayNavLabel"></span>
+
+        <button class="nav-btn" id="nextDayBtn">&#8594;</button>
+
+    </div>
+
     <!-- Stats Row -->
 
     <div class="stats-grid" id="statsGrid">
@@ -120,7 +134,7 @@ $greeting = (int)date('H') < 12 ? 'Good morning' : ((int)date('H') < 18 ? 'Good 
 
         <div class="tasks-header">
 
-            <h3 class="tasks-title">Today's Tasks</h3>
+            <h3 class="tasks-title" id="tasksTitle">Today's Tasks</h3>
 
             <div class="filter-tabs">
 
