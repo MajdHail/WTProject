@@ -1,8 +1,25 @@
+/**
+ * Calendar — js/calendar.js
+ *
+ * Renders either a weekly grid (7 columns, Mon–Sun) or a monthly grid
+ * (standard calendar layout with task dots per day).
+ *
+ * The `anchor` date is the reference point for navigation. When the user
+ * clicks ← or → it shifts anchor by ±7 days (weekly) or ±1 month (monthly),
+ * then re-renders the whole view from scratch.
+ *
+ * Data flow:
+ *   render() → fetchTasksForMonth() → api/tasks.php?month=YYYY-MM
+ *   → groupByDate() builds a lookup map → HTML is constructed as a string
+ *   and written to calendarView.innerHTML in one operation (fast).
+ */
+
+// ISO date string for today, e.g. "2025-06-03" — used to highlight today's cell.
 const TODAY       = new Date().toISOString().slice(0, 10);
 
-let   currentView = 'weekly';
+let   currentView = 'weekly';  // 'weekly' | 'monthly'
 
-let   anchor      = new Date();
+let   anchor      = new Date(); // the date the current view is centred on
 
 const DAYS   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -244,6 +261,11 @@ function miniTaskCard(t) {
 
 }
 
+/**
+ * Converts a flat task array into an object keyed by due_date.
+ * e.g. { "2025-06-03": [task1, task2], "2025-06-05": [task3] }
+ * Tasks without a due_date are skipped (they don't belong on the calendar).
+ */
 function groupByDate(tasks) {
 
     return tasks.reduce((acc, t) => {
@@ -270,6 +292,7 @@ function formatFullDate(d) {
 
 }
 
+// Same XSS-prevention helper as in dashboard.js — task titles are user content.
 function escHtml(s) {
 
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');

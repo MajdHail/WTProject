@@ -1,9 +1,21 @@
 <?php
 
+/**
+ * Shared navigation sidebar — included by every authenticated page.
+ *
+ * Highlights the active link by comparing the current script name against
+ * each page name. The $root prefix handles the difference in directory depth
+ * between top-level pages (dashboard.php) and auth/ pages.
+ */
+
+// basename() strips the directory and .php extension, giving e.g. 'dashboard'.
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
+// Pages inside /auth/ are one level deeper, so relative links need '../'.
 $root = strpos($_SERVER['PHP_SELF'], '/auth/') !== false ? '../' : '';
 
+// Load the user's avatar from the DB on every page load so changes made
+// on the profile page are reflected in the nav immediately.
 $avatarSrc = null;
 if (!empty($_SESSION['user_id'])) {
     require_once __DIR__ . '/db.php';

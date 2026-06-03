@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * Sign-up page — auth/signup.php
+ *
+ * Validates all input server-side before creating the account.
+ * Security notes:
+ *   - PASSWORD_DEFAULT uses bcrypt; PHP automatically upgrades the algorithm
+ *     in future versions, so stored hashes stay secure over time.
+ *   - We check for duplicate username/email before inserting so the UNIQUE
+ *     constraint in the DB is a backstop, not the first line of defence.
+ */
+
 session_start();
 
 if (isset($_SESSION['user_id'])) { header('Location: ../dashboard.php'); exit; }
@@ -26,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
+        // PHP's built-in email validator checks RFC 5322 format.
         $error = 'Invalid email address.';
 
     } elseif (strlen($password) < 6) {
@@ -40,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $db = getDB();
 
+        // Reject duplicates with a friendly message before hitting the DB constraint.
         $stmt = $db->prepare('SELECT id FROM users WHERE email = ? OR username = ?');
 
         $stmt->execute([$email, $username]);
@@ -50,6 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         } else {
 
+            // password_hash with PASSWORD_DEFAULT produces a bcrypt hash.
+            // The hash includes its own salt, so two calls on the same password
+            // produce different hashes — rainbow tables are defeated.
             $hash = password_hash($password, PASSWORD_DEFAULT);
 
             $stmt = $db->prepare('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)');
